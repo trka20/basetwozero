@@ -9,7 +9,10 @@ type CarouselEdges = {
 
 const EDGE_TOLERANCE = 2
 const DRAG_THRESHOLD = 6
-const SETTLE_DURATION = 360
+const MAX_DRAG_STEPS = 3
+const VELOCITY_PROJECTION_MS = 220
+const MIN_SETTLE_DURATION = 420
+const MAX_SETTLE_DURATION = 560
 
 type DragState = {
   pointerId: number
@@ -18,6 +21,9 @@ type DragState = {
   startScrollLeft: number
   startIndex: number
   step: number
+  lastX: number
+  lastTime: number
+  velocityX: number
   axis: 'pending' | 'horizontal'
   moved: boolean
 }
@@ -61,11 +67,13 @@ export function useFiniteCarousel() {
 
     const start = track.scrollLeft
     const startedAt = performance.now()
+    const distance = Math.abs(target - start)
+    const duration = Math.min(MAX_SETTLE_DURATION, MIN_SETTLE_DURATION + distance * .18)
     track.classList.add('card-track--settling')
 
     const tick = (now: number) => {
-      const progress = Math.min(1, (now - startedAt) / SETTLE_DURATION)
-      const eased = 1 - Math.pow(1 - progress, 4)
+      const progress = Math.min(1, (now - startedAt) / duration)
+      const eased = 1 - Math.pow(1 - progress, 3)
       track.scrollLeft = start + (target - start) * eased
       scheduleUpdate(id)
 
@@ -163,14 +171,19 @@ export function useFiniteCarousel() {
       const gap = Number.parseFloat(styles.columnGap || styles.gap) || 0
       const step = firstItem.offsetWidth + gap
       if (step <= 0) return
+      const maxScroll = Math.max(0, element.scrollWidth - element.clientWidth)
+      const atEnd = maxScroll > 0 && element.scrollLeft >= maxScroll - EDGE_TOLERANCE
 
       dragState = {
         pointerId: event.pointerId,
         startX: event.clientX,
         startY: event.clientY,
         startScrollLeft: element.scrollLeft,
-        startIndex: Math.round(element.scrollLeft / step),
+        startIndex: atEnd ? Math.ceil(element.scrollLeft / step) : Math.round(element.scrollLeft / step),
         step,
+        lastX: event.clientX,
+        lastTime: event.timeStamp,
+        velocityX: 0,
         axis: 'pending',
         moved: false,
       }
@@ -190,12 +203,22 @@ export function useFiniteCarousel() {
       }
       if (!dragState.moved && Math.abs(deltaX) < DRAG_THRESHOLD) return
 
+      const elapsed = event.timeStamp - dragState.lastTime
+      if (elapsed > 0) {
+        const nextVelocity = (event.clientX - dragState.lastX) / elapsed
+        dragState.velocityX = dragState.moved
+          ? dragState.velocityX * .35 + nextVelocity * .65
+          : nextVelocity
+      }
+      dragState.lastX = event.clientX
+      dragState.lastTime = event.timeStamp
       dragState.axis = 'horizontal'
       dragState.moved = true
       const maxScroll = Math.max(0, element.scrollWidth - element.clientWidth)
       const unclamped = dragState.startScrollLeft - deltaX
-      const gestureMin = Math.max(0, dragState.startScrollLeft - dragState.step)
-      const gestureMax = Math.min(maxScroll, dragState.startScrollLeft + dragState.step)
+      const gestureRange = dragState.step * MAX_DRAG_STEPS
+      const gestureMin = Math.max(0, dragState.startScrollLeft - gestureRange)
+      const gestureMax = Math.min(maxScroll, dragState.startScrollLeft + gestureRange)
       element.scrollLeft = Math.max(gestureMin, Math.min(gestureMax, unclamped))
       scheduleUpdate(id)
     }
@@ -208,9 +231,15 @@ export function useFiniteCarousel() {
 
       const distance = event.clientX - state.startX
       const threshold = Math.min(48, state.step * .2)
-      const direction = state.moved && Math.abs(distance) >= threshold ? (distance < 0 ? 1 : -1) : 0
-      const maxIndex = Math.max(0, Math.round((element.scrollWidth - element.clientWidth) / state.step))
-      const targetIndex = Math.min(maxIndex, Math.max(0, state.startIndex + direction))
+      const velocity = event.timeStamp - state.lastTime <= 80 ? state.velocityX : 0
+      const projectedDistance = distance + velocity * VELOCITY_PROJECTION_MS
+      const hasIntent = state.moved && (Math.abs(distance) >= threshold || Math.abs(velocity) >= .25)
+      const direction = hasIntent ? (projectedDistance < 0 ? 1 : -1) : 0
+      const stepCount = hasIntent
+        ? Math.min(MAX_DRAG_STEPS, Math.max(1, Math.round(Math.abs(projectedDistance) / state.step)))
+        : 0
+      const maxIndex = Math.max(0, Math.ceil((element.scrollWidth - element.clientWidth) / state.step))
+      const targetIndex = Math.min(maxIndex, Math.max(0, state.startIndex + direction * stepCount))
       animateTo(id, targetIndex * state.step)
       scheduleUpdate(id)
     }
