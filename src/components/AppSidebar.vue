@@ -77,7 +77,10 @@ const groups: SidebarItem[][] = [
     </div>
 
     <div class="sidebar-search">
-      <button type="button" aria-label="Поиск"><img :src="searchIcon" alt="" /><span>Поиск</span></button>
+      <label class="sidebar-search__control">
+        <img :src="searchIcon" alt="" />
+        <input type="search" placeholder="Поиск" aria-label="Поиск" autocomplete="off" />
+      </label>
     </div>
 
     <section class="sidebar-featured" aria-label="Игровые разделы">

@@ -7,6 +7,7 @@ type Prize = {
   game: string
   amount: string
   username: string
+  highlighted?: boolean
 }
 
 const props = defineProps<{ prizes: Prize[] }>()
@@ -32,8 +33,6 @@ const trackStyle = computed(() => ({
   transform: `translate3d(${-(CLONE_COUNT + current.value) * step.value}px, 0, 0)`,
   transition: transitionEnabled.value ? 'transform 600ms cubic-bezier(.22, 1, .36, 1)' : 'none',
 }))
-
-const isActive = (index: number) => index === CLONE_COUNT + current.value
 
 const updateStep = () => {
   const firstCard = viewport.value?.querySelector<HTMLElement>('.prize-card')
@@ -87,10 +86,10 @@ onBeforeUnmount(() => {
         v-for="(prize, index) in renderedPrizes"
         :key="`${index}-${prize.image}`"
         class="prize-card"
-        :class="{ 'prize-card--active': isActive(index) }"
+        :class="{ 'prize-card--highlighted': prize.highlighted }"
       >
         <div class="prize-card__surface">
-          <img v-if="isActive(index)" class="prize-card__active-surface" :src="activeSurface" alt="" />
+          <img v-if="prize.highlighted" class="prize-card__active-surface" :src="activeSurface" alt="" />
           <div class="prize-card__cover"><img :src="prize.image" :alt="prize.game" draggable="false" /></div>
           <div class="prize-card__info">
             <b>{{ prize.amount }}</b>

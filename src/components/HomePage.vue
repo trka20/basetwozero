@@ -164,8 +164,26 @@ const finishRowsAnimation = (event: TransitionEvent) => {
   rowsAnimating.value = false
 }
 
-const prizeGames = [gameCIrs, gameZxCO, gameHNOZ, game4fx, gameVBZ, gameVBZ, game5iu, game5iu, gameYx2Q]
-  .map((image) => ({ image, game: 'Joker Bombs', amount: '$ 19,919', username: 'a****@mail.ru' }))
+const prizeAmounts = ['$ 1,240', '$ 3,875', '$ 7,560', '$ 12,480', '$ 19,919', '$ 24,600', '$ 31,250']
+const prizeUsers = ['a****@mail.ru', 'm****@gmail.com', 'd****@mail.ru', 'k****@gmail.com']
+
+const shuffle = <T,>(items: T[]) => {
+  const result = [...items]
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const target = Math.floor(Math.random() * (index + 1))
+    ;[result[index], result[target]] = [result[target], result[index]]
+  }
+  return result
+}
+
+const highlightedPrize = Math.floor(Math.random() * games.length)
+const prizeGames = shuffle(games).map((game, index) => ({
+  image: game.image,
+  game: game.label,
+  amount: prizeAmounts[Math.floor(Math.random() * prizeAmounts.length)],
+  username: prizeUsers[Math.floor(Math.random() * prizeUsers.length)],
+  highlighted: index === highlightedPrize,
+}))
 
 onMounted(() => {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
@@ -187,37 +205,42 @@ const { edges: carouselEdges, move: moveCarousel, setTrack: setCarouselTrack } =
 
 <template>
   <main class="home-page">
-    <HeroCarousel />
+    <HeroCarousel class="page-reveal page-reveal--hero" />
 
-    <section class="category-links" aria-label="Основные разделы">
+    <section class="category-links page-reveal page-reveal--categories" aria-label="Основные разделы">
       <a v-for="item in categoryLinks" :key="item.label" :class="`category-link category-link--${item.modifier}`" href="#">
         <span class="category-links__image"><img :src="item.image" alt="" /></span>
         <span class="category-links__copy">
           <strong>{{ item.label }}</strong>
-          <small><span>Перейти</span><i aria-hidden="true">›</i></small>
+          <small><span>Перейти</span><img :src="arrowForward" alt="" /></small>
         </span>
       </a>
     </section>
 
-    <section v-for="section in gameSections" :key="section.id" class="home-section">
+    <section
+      v-for="(section, sectionIndex) in gameSections"
+      :key="section.id"
+      class="home-section page-reveal"
+      :style="{ '--page-reveal-delay': `${200 + sectionIndex * 100}ms` }"
+    >
       <div class="section-heading">
         <h2><img :src="section.icon" alt="" />{{ section.title }}</h2>
         <div class="section-heading__actions"><button type="button" class="section-all-button">Все<img :src="arrowForward" alt="" /></button><button type="button" aria-label="Назад" :disabled="carouselEdges[section.id]?.atStart ?? true" @click="moveCarousel(section.id, -1)"><img :src="arrowLeft" alt="" /></button><button type="button" aria-label="Вперёд" :disabled="carouselEdges[section.id]?.atEnd ?? true" @click="moveCarousel(section.id, 1)"><img :src="arrowRight" alt="" /></button></div>
       </div>
       <div :ref="(element) => setCarouselTrack(section.id, element)" class="card-track game-track" tabindex="0" @keydown.left.prevent="moveCarousel(section.id, -1)" @keydown.right.prevent="moveCarousel(section.id, 1)">
-        <article v-for="(card, index) in section.cards" :key="`${section.title}-${index}-${card.image}`" class="game-card">
+        <article v-for="(card, index) in section.cards" :key="`${section.title}-${index}-${card.image}`" class="game-card carousel-item-motion">
           <img :src="card.image" :alt="card.label" />
         </article>
       </div>
     </section>
 
-    <section class="home-section home-section--sports">
+    <section class="home-section home-section--sports page-reveal page-reveal--sports">
       <div class="section-heading">
         <h2><img :src="sportIcon" alt="" />Виды спорта</h2>
         <div class="section-heading__actions"><button type="button" class="section-all-button">Все<img :src="arrowForward" alt="" /></button><button type="button" aria-label="Назад" :disabled="carouselEdges.sports?.atStart ?? true" @click="moveCarousel('sports', -1)"><img :src="arrowLeft" alt="" /></button><button type="button" aria-label="Вперёд" :disabled="carouselEdges.sports?.atEnd ?? true" @click="moveCarousel('sports', 1)"><img :src="arrowRight" alt="" /></button></div>
       </div>
       <div :ref="(element) => setCarouselTrack('sports', element)" class="card-track sport-track" tabindex="0" @keydown.left.prevent="moveCarousel('sports', -1)" @keydown.right.prevent="moveCarousel('sports', 1)">
-        <article v-for="card in sports" :key="card.image" class="sport-card">
+        <article v-for="card in sports" :key="card.image" class="sport-card carousel-item-motion">
           <div>
             <img :src="card.image" :alt="card.label" />
             <span v-if="card.badge" class="sport-badge"><b>{{ card.badge }}</b><i><img :src="flashIcon" alt="" /></i></span>
@@ -227,17 +250,17 @@ const { edges: carouselEdges, move: moveCarousel, setTrack: setCarouselTrack } =
       </div>
     </section>
 
-    <section class="home-section">
+    <section class="home-section page-reveal page-reveal--popular">
       <div class="section-heading">
         <h2><img :src="popularIcon" alt="" />Популярные игры</h2>
         <div class="section-heading__actions"><button type="button" class="section-all-button">Все<img :src="arrowForward" alt="" /></button><button type="button" aria-label="Назад" :disabled="carouselEdges.popular?.atStart ?? true" @click="moveCarousel('popular', -1)"><img :src="arrowLeft" alt="" /></button><button type="button" aria-label="Вперёд" :disabled="carouselEdges.popular?.atEnd ?? true" @click="moveCarousel('popular', 1)"><img :src="arrowRight" alt="" /></button></div>
       </div>
       <div :ref="(element) => setCarouselTrack('popular', element)" class="card-track game-track" tabindex="0" @keydown.left.prevent="moveCarousel('popular', -1)" @keydown.right.prevent="moveCarousel('popular', 1)">
-        <article v-for="(card, index) in popularGames" :key="`popular-${index}-${card.image}`" class="game-card"><img :src="card.image" :alt="card.label" /></article>
+        <article v-for="(card, index) in popularGames" :key="`popular-${index}-${card.image}`" class="game-card carousel-item-motion"><img :src="card.image" :alt="card.label" /></article>
       </div>
     </section>
 
-    <section class="home-section">
+    <section class="home-section page-reveal page-reveal--wins">
       <div class="section-heading prize-heading">
         <h2><img :src="cupIcon" alt="" />Последние выигрыши</h2>
         <div class="online"><strong>41 312</strong><span>Игроков онлайн</span><i><img :src="prizeLiveIcon" alt="" /></i></div>
@@ -245,17 +268,17 @@ const { edges: carouselEdges, move: moveCarousel, setTrack: setCarouselTrack } =
       <PrizeCarousel :prizes="prizeGames" />
     </section>
 
-    <section class="home-section">
+    <section class="home-section page-reveal page-reveal--providers">
       <div class="section-heading">
         <h2><img :src="flagIcon" alt="" />Провайдеры</h2>
         <div class="section-heading__actions"><button type="button" aria-label="Назад" :disabled="carouselEdges.providers?.atStart ?? true" @click="moveCarousel('providers', -1)"><img :src="arrowLeft" alt="" /></button><button type="button" aria-label="Вперёд" :disabled="carouselEdges.providers?.atEnd ?? true" @click="moveCarousel('providers', 1)"><img :src="arrowRight" alt="" /></button></div>
       </div>
       <div :ref="(element) => setCarouselTrack('providers', element)" class="card-track provider-track" tabindex="0" @keydown.left.prevent="moveCarousel('providers', -1)" @keydown.right.prevent="moveCarousel('providers', 1)">
-        <div v-for="provider in providers" :key="provider" class="provider-card"><img :src="provider" alt="" /></div>
+        <div v-for="provider in providers" :key="provider" class="provider-card carousel-item-motion"><img :src="provider" alt="" /></div>
       </div>
     </section>
 
-    <section class="leaderboard">
+    <section class="leaderboard page-reveal page-reveal--leaderboard">
       <header>
         <div class="segmented"><button class="active" type="button">Последние ставки</button><button type="button">Крупные ставки</button></div>
         <div class="segmented leaderboard__limit"><button class="active" type="button">10</button><button type="button">20</button><button type="button">30</button></div>
@@ -278,7 +301,7 @@ const { edges: carouselEdges, move: moveCarousel, setTrack: setCarouselTrack } =
       </div>
     </section>
 
-    <section class="seo-card">
+    <section class="seo-card page-reveal page-reveal--seo">
       <h2>Casino — Where Big Wins Begin</h2>
       <p>The importance of Search Engine Optimization (SEO) in the modern world cannot be underestimated.<br />SEO not only improves a website’s visibility in search results but also increases its relevance for potential visitors. Through strategic use of keywords, content optimization, and technical enhancements, a website can achieve significant growth in both traffic and conversions.</p>
       <button type="button">Показать еще</button>

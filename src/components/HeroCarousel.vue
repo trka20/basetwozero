@@ -6,7 +6,7 @@ import banner3 from '../assets/banners/framer-banner-3.png'
 import banner4 from '../assets/banners/framer-banner-4.png'
 
 const GAP = 8
-const CLONE_COUNT = 3
+const LOOP_COPY_COUNT = 4
 const AUTOPLAY_DELAY = 3000
 
 const banners = [
@@ -15,6 +15,7 @@ const banners = [
   { image: banner3, lines: ['Get your', '500%', 'bonus'] },
   { image: banner4, lines: ['Get your', '500%', 'bonus'] },
 ]
+const CLONE_COUNT = banners.length * LOOP_COPY_COUNT
 const viewport = ref<HTMLElement | null>(null)
 const current = ref(0)
 const viewportWidth = ref(0)
@@ -23,14 +24,16 @@ const transitionEnabled = ref(true)
 const dragging = ref(false)
 const dragOffset = ref(0)
 const pointerStart = ref(0)
+const activePointerId = ref<number | null>(null)
 let autoplayTimer: number | undefined
 let resizeFrame = 0
 let resizeObserver: ResizeObserver | undefined
 
+const loopCopies = Array.from({ length: LOOP_COPY_COUNT }, () => banners).flat()
 const renderedBanners = [
-  ...banners.slice(-CLONE_COUNT),
+  ...loopCopies,
   ...banners,
-  ...banners.slice(0, CLONE_COUNT),
+  ...loopCopies,
 ]
 
 const slideWidth = computed(() => {
@@ -126,7 +129,9 @@ const finishLoop = (event: TransitionEvent) => {
 
 const startDrag = (event: PointerEvent) => {
   if (event.pointerType === 'mouse' && event.button !== 0) return
+  if (dragging.value) return
   dragging.value = true
+  activePointerId.value = event.pointerId
   pointerStart.value = event.clientX
   dragOffset.value = 0
   viewport.value?.setPointerCapture(event.pointerId)
@@ -134,7 +139,7 @@ const startDrag = (event: PointerEvent) => {
 }
 
 const drag = (event: PointerEvent) => {
-  if (!dragging.value) return
+  if (!dragging.value || activePointerId.value !== event.pointerId) return
   const distance = event.clientX - pointerStart.value
   const oneSlide = slideWidth.value + GAP
 
@@ -143,9 +148,10 @@ const drag = (event: PointerEvent) => {
 }
 
 const finishDrag = (event: PointerEvent) => {
-  if (!dragging.value) return
+  if (!dragging.value || activePointerId.value !== event.pointerId) return
   const distance = dragOffset.value
   dragging.value = false
+  activePointerId.value = null
   dragOffset.value = 0
   if (viewport.value?.hasPointerCapture(event.pointerId)) {
     viewport.value.releasePointerCapture(event.pointerId)

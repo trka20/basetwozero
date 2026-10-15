@@ -9,6 +9,7 @@ import android from '../assets/footer/platform-android.svg'
 import ios from '../assets/footer/platform-ios.svg'
 import platformArrow from '../assets/footer/platform-arrow.svg'
 import scrollTop from '../assets/footer/scroll-top.svg'
+import chevronDown from '../assets/icons/chevron-down.svg'
 import telegram from '../assets/footer/telegram.svg'
 import tiktok from '../assets/footer/tiktok.svg'
 import facebook from '../assets/footer/facebook.svg'
@@ -48,7 +49,7 @@ const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
           </div>
         </nav>
         <div class="footer-controls">
-          <button type="button">Русский <span>⌄</span></button>
+          <button type="button">Русский <img class="footer-control-chevron" :src="chevronDown" alt="" /></button>
           <button type="button">Поддержка <b>24/7</b></button>
           <div class="footer-contacts">
             <small>Коммерческие предложения<a href="mailto:business@Casino.xyz">business@Casino.xyz</a></small>
